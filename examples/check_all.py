@@ -10,6 +10,7 @@ PLX_VENDOR=0x10b5
 
 def check_power(dev, at_least_watts=25):
     watts = dev.parent.config.get_pcie_slot_cap_watts()
+    print "Device %s's parent (%s) has slot power limited to %.02f" % (dev.addr, dev.parent.addr, watts)
     if watts < at_least_watts:
         print "Warning: Device %s's upstream port (%s) reports limited power, %d watts" % (dev.addr, dev.parent.addr, watts)
         dev.parent.config.set_pcie_slot_cap_watts(at_least_watts)
@@ -17,7 +18,6 @@ def check_power(dev, at_least_watts=25):
         if new_watts != watts:
             print "ERROR:   Tried to update to %d watts.  This should not be possible, watts changed from %d to %d" % (at_least_watts, watts, new_watts)
 
-    #print "Device %s's parent (%s) has slot power limited to %.02f" % (dev.addr, dev.parent.addr, watts)
     print
 
 def check_maxpayload(check_dev, dl):
