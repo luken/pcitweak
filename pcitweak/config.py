@@ -132,6 +132,7 @@ class ConfigRegSet:
         self.regs_byname = {}
         self.base_offset = base_offset
         self.config = config
+        self.extend_attrs = []
 
     def __contains__(self, name):
         if name in self.regs_byname:
@@ -162,6 +163,11 @@ class ConfigRegSet:
         self.regs.extend(other.regs)
         for reg in self.regs:
             self.regs_byname[reg.name] = reg
+
+        for attr in other.extend_attrs:
+            if attr in self:
+                raise RuntimeError("Attribute %s from %s already exists in %s" % (attr, other.name, self.name))
+            setattr(self, attr, getattr(other, attr))
 
     def read(self, reg_name):
         return self.regs_byname[reg_name].read(self.config)
