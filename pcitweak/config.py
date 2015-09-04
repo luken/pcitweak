@@ -511,8 +511,87 @@ class CapabilityPCIExpress(CapabilityRegSet):
     def add_pcie_slot(self):
         ## Ports with slots, Root Ports
         self.add("pcie_slot_capabilities", 32, 0x14)
+        self.add("pcie_slot_capabilities_attention_button_present",                 32, 0x14, bit_offset=0, bit_length=1)
+        self.add("pcie_slot_capabilities_power_control_present",                    32, 0x14, bit_offset=1, bit_length=1)
+        self.add("pcie_slot_capabilities_MRL_sensor_present",                       32, 0x14, bit_offset=2, bit_length=1)
+        self.add("pcie_slot_capabilities_attention_indicator_present",              32, 0x14, bit_offset=3, bit_length=1)
+        self.add("pcie_slot_capabilities_power_indicator_present",                  32, 0x14, bit_offset=4, bit_length=1)
+        self.add("pcie_slot_capabilities_hot_plug_surprise",                        32, 0x14, bit_offset=5, bit_length=1)
+        self.add("pcie_slot_capabilities_hot_plug_capable",                         32, 0x14, bit_offset=6, bit_length=1)
+        self.add("pcie_slot_capabilities_slot_power_limit_value",                   32, 0x14, bit_offset=7, bit_length=8)
+        self.add("pcie_slot_capabilities_slot_power_limit_scale",                   32, 0x14, bit_offset=15, bit_length=2)
+        self.add("pcie_slot_capabilities_slot_electromechanical_interlock_present", 32, 0x14, bit_offset=17, bit_length=1)
+        self.add("pcie_slot_capabilities_slot_no_command_completed_support",        32, 0x14, bit_offset=18, bit_length=1)
+        self.add("pcie_slot_capabilities_physical_slot_number",                     32, 0x14, bit_offset=19, bit_length=13)
+
+        self.slot_power_scale = {
+                0b00: 1,
+                0b01: 0.1,
+                0b10: 0.01,
+                0b11: 0.001
+        }
+        self.extend_attrs.append('slot_power_scale')
+
         self.add("pcie_slot_control", 16, 0x18)
+        self.add("pcie_slot_control_attention_button_press_enable",         16, 0x18, bit_offset=0, bit_length=1)
+        self.add("pcie_slot_control_power_fault_detection_enable",          16, 0x18, bit_offset=1, bit_length=1)
+        self.add("pcie_slot_control_MRL_sensor_changed_enable",             16, 0x18, bit_offset=2, bit_length=1)
+        self.add("pcie_slot_control_presence_detect_changed_enable",        16, 0x18, bit_offset=3, bit_length=1)
+        self.add("pcie_slot_control_command_completed_interrupt_enable",    16, 0x18, bit_offset=4, bit_length=1)
+        self.add("pcie_slot_control_hot_plug_interrupt_enable",             16, 0x18, bit_offset=5, bit_length=1)
+        self.add("pcie_slot_control_attention_indicator_control",           16, 0x18, bit_offset=6, bit_length=2)
+        self.add("pcie_slot_control_power_indicator_control",               16, 0x18, bit_offset=8, bit_length=2)
+        self.add("pcie_slot_control_power_controller_control",              16, 0x18, bit_offset=10, bit_length=1)
+        self.add("pcie_slot_control_electromechanical_interlock_control",   16, 0x18, bit_offset=11, bit_length=1)
+        self.add("pcie_slot_control_data_link_layer_state_changed_enable",  16, 0x18, bit_offset=12, bit_length=1)
+        self.add("pcie_slot_control_reserved",                              16, 0x18, bit_offset=13, bit_length=3)
+
         self.add("pcie_slot_status", 16, 0x1a)
+        self.add("pcie_slot_status_attention_button_pressed",               16, 0x1a, bit_offset=0, bit_length=1)
+        self.add("pcie_slot_status_power_fault_detected",                   16, 0x1a, bit_offset=1, bit_length=1)
+        self.add("pcie_slot_status_MRL_sensor_changed",                     16, 0x1a, bit_offset=2, bit_length=1)
+        self.add("pcie_slot_status_presence_detect_changed",                16, 0x1a, bit_offset=3, bit_length=1)
+        self.add("pcie_slot_status_command_completed",                      16, 0x1a, bit_offset=4, bit_length=1)
+        self.add("pcie_slot_status_MRL_sensor_state",                       16, 0x1a, bit_offset=5, bit_length=1)
+        self.add("pcie_slot_status_presence_detect_state",                  16, 0x1a, bit_offset=6, bit_length=1)
+        self.add("pcie_slot_status_electromechanical_interlock_status",     16, 0x1a, bit_offset=7, bit_length=1)
+        self.add("pcie_slot_status_data_link_layer_state_changed",          16, 0x1a, bit_offset=8, bit_length=1)
+        self.add("pcie_slot_status_reserved",                               16, 0x1a, bit_offset=9, bit_length=7)
+
+        self.extend_attrs.append('get_pcie_slot_cap_watts')
+        self.extend_attrs.append('set_pcie_slot_cap_watts')
+
+    def get_pcie_slot_cap_watts(self):
+        pwr_value = self.read("pcie_slot_capabilities_slot_power_limit_value")
+        pwr_scale = self.read("pcie_slot_capabilities_slot_power_limit_scale")
+        # From the spec rev 2.1 section 7.8.9,
+        # if scale == 0, power values above 0xef are reserved
+        if pwr_scale == 0b00 and pwr_value > 0xef:
+            if pwr_value == 0xf0:
+                return 250
+            elif pwr_value == 0xf1:
+                return 275
+            elif pwr_value == 0xf2:
+                return 300
+            else:
+                print "Warning: undefined slot power 0x%x value for %s" % (pwr_value, self.addr)
+                return -1
+        for regval, scale in self.slot_power_scale.iteritems():
+            if pwr_scale == regval:
+                return pwr_value * scale
+        print "Warning: unhandled slot power value/scale (0x%x, 0x%x) for %s" % (pwr_value, pwr_scale, self.addr)
+        return -1
+
+    def set_pcie_slot_cap_watts(self, watts):
+        # This should fail, registers are flagged HwInit, this is only to see if the device has a bug
+        # Because of this, not implimenting any of the special scailing stuff, just taking the int passed in
+        pwr_value = 0
+        pwr_scale = 0
+        if watts > 0xef:
+            raise RuntimeError("Can't try to fake set watts higher than 0xef, tried 0x%x" % (watts))
+                
+        self.write("pcie_slot_capabilities_slot_power_limit_value", watts)
+        self.write("pcie_slot_capabilities_slot_power_limit_scale", 0)
 
     def add_pcie_root(self):
         ## Root Ports, Root Complex Event Collector
