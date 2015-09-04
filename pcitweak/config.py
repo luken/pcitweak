@@ -278,7 +278,11 @@ class ConfigPCICommon(ConfigRegSet):
         self.add("common_class_code", 24, 0x09)
         self.add("common_cache_line_size", 8, 0x0c)
         self.add("common_master_latency_timer", 8, 0x0d)
-        self.add("common_header_type", 8, 0x0e)
+        # According to PCI 3.0 spec page 54, bit 7 in the header type field is special
+        # If bit 7 is set it indicates the device is a single function device
+        # Pull this bit out of the common_header_type field to avoid bogus types
+        self.add("common_header_type", 8, 0x0e, bit_offset=0, bit_length=7)
+        self.add("common_header_type_is_single_function", 8, 0x0e, bit_offset=7, bit_length=1)
         self.add("common_bist", 8, 0x0f)
         self.add("common_capabilities_pointer", 8, 0x34)
         self.add("common_interrupt_line", 8, 0x3c)
