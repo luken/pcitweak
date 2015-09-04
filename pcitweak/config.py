@@ -401,6 +401,16 @@ cap_types[0x10] = lambda base_offset, config: CapabilityPCIExpress(base_offset, 
 class CapabilityPCIExpress(CapabilityRegSet):
     def __init__(self, base_offset, config):
         CapabilityRegSet.__init__(self, "PCI Express Capability Structure", base_offset, 0x10, config, "pcie")
+        self.add_pcie_cap()
+        self.add_pcie_device()
+        self.add_pcie_link()
+        self.add_pcie_slot()
+        self.add_pcie_root()
+        self.add_pcie_device2()
+        self.add_pcie_link2()
+        self.add_pcie_slot2()
+
+    def add_pcie_cap(self):
         self.add("pcie_cap_register", 16, 0x02)
         self.add("pcie_cap_register_version", 16, 0x02, bit_offset=0, bit_length=4)
         self.add("pcie_cap_register_device_port_type", 16, 0x02, bit_offset=4, bit_length=4)
@@ -420,7 +430,7 @@ class CapabilityPCIExpress(CapabilityRegSet):
         self.devports[0x9] = "Root Complex Integrated Endpoint Device"
         self.devports[0xa] = "Root Complex Event Collector"
 
-       
+    def add_pcie_device(self):
         ## All Devices
         self.add("pcie_device_capabilities", 32, 0x04)
         self.add("pcie_device_capabilities_max_payload_size_supported", 32, 0x04, bit_offset=0, bit_length=3)
@@ -462,6 +472,7 @@ class CapabilityPCIExpress(CapabilityRegSet):
         self.maxsize[4] = "2048 bytes"
         self.maxsize[5] = "4096 bytes"
 
+    def add_pcie_link(self):
         ## Devices with Links, Ports with Slots, Root Ports
         self.add("pcie_link_capabilities", 32, 0x0c)
         self.add("pcie_link_capabilities_max_link_speed", 32, 0x0c, bit_offset=0, bit_length=4)
@@ -491,11 +502,13 @@ class CapabilityPCIExpress(CapabilityRegSet):
         self.add("pcie_link_status_slot_clock_configuration", 16, 0x12, bit_offset=12)
         self.add("pcie_link_status_data_link_layer_link_active", 16, 0x12, bit_offset=13)
 
+    def add_pcie_slot(self):
         ## Ports with slots, Root Ports
         self.add("pcie_slot_capabilities", 32, 0x14)
         self.add("pcie_slot_control", 16, 0x18)
         self.add("pcie_slot_status", 16, 0x1a)
 
+    def add_pcie_root(self):
         ## Root Ports, Root Complex Event Collector
         self.add("pcie_root_control", 16, 0x1c)
         self.add("pcie_root_control_serr_correctable", 16, 0x1c, bit_offset=0)
@@ -512,13 +525,18 @@ class CapabilityPCIExpress(CapabilityRegSet):
         self.add("pcie_root_status_pme_status", 32, 0x20, bit_offset=16)
         self.add("pcie_root_status_pme_pending", 32, 0x20, bit_offset=17)
 
+    def add_pcie_device2(self):
         ## Device2 Registers
         self.add("pcie_device2_capabilities", 32, 0x24)
         self.add("pcie_device2_control", 16, 0x28)
         self.add("pcie_device2_status", 16, 0x2a)
+
+    def add_pcie_link2(self):
         self.add("pcie_link2_capabilities", 32, 0x2c)
         self.add("pcie_link2_control", 16, 0x30)
         self.add("pcie_link2_status", 16, 0x32)
+
+    def add_pcie_slot2(self):
         self.add("pcie_slot2_capabilities", 32, 0x34)
         self.add("pcie_slot2_control", 16, 0x38)
         self.add("pcie_slot2_status", 16, 0x3a)
