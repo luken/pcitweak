@@ -89,6 +89,8 @@ class PCIDevices:
             return None
 
         dev.config = PCIConfigSpace(PCIConfigSpaceAccess(filename, dev))
+        # Copy addr into config for error messages
+        dev.config.addr = dev.addr
         
         dev.device = dev.config.read("common_device_id")
         dev.vendor = dev.config.read("common_vendor_id")
